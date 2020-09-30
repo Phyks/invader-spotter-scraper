@@ -10,8 +10,8 @@ EXCEL_FORMULA = '=IMAGE("%s")' % IMG_BASE_URL
 
 INVADER_ID_POINTS_PATTERN = r'<b>([A-Z]+_[0-9]+) \[([0-9]+ pts)\]<\/b>'
 INVADER_LOCATION_PATTERN = r'<br\/>\((.*)\)<br>'
-INVADER_STATUS_DESCRIPTION_PATTERN = r'Dernier état connu : <img.*> (.*)<br\/>'
-INVADER_DATE_PATTERN = r'Date et source : (.*)<\/br>'
+INVADER_STATUS_DESCRIPTION_PATTERN = r'Dernier état connu : <img.*> (.*)<br.?>'
+INVADER_DATE_PATTERN = r'Date et source : (.*)<.?br>'
 
 
 class ListingPostForm(TypedDict):
@@ -72,13 +72,12 @@ def scrap_city(data: ListingPostForm):
 
             invaders.append(invader)
 
-    with open('invaders-paris-%s.csv' % data['arrondissement'], 'w', newline='') as file:
+    with open('invaders-%s%s.csv' % (data['ville'], data["arrondissement"]), 'w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=invaders[0].keys())
         writer.writeheader()
         writer.writerows(invaders)
 
 
 if __name__ == '__main__':
-    for arrondissement in range(1, 21):
-        data = ListingPostForm(ville='PA', page=1, arrondissement="%02d" % arrondissement)
-        scrap_city(data)
+    data = ListingPostForm(ville='MARS', page=1, arrondissement=None)
+    scrap_city(data)
