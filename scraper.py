@@ -7,7 +7,7 @@ import csv
 DOMAIN = 'https://www.invader-spotter.art/'
 URL = DOMAIN + 'listing.php'
 IMG_BASE_URL = 'https://www.invader-spotter.art/%s'
-EXCEL_FORMULA = '=IMAGE("%s")' % IMG_BASE_URL
+#EXCEL_FORMULA = '=IMAGE("%s")' % IMG_BASE_URL
 
 INVADER_ID_POINTS_PATTERN = r'<b>([A-Z]+_[0-9]+) \[([?0-9]{2,3} pts)\]<\/b>'
 #INVADER_LOCATION_PATTERN = r'<br\/>\((.*)\)<br>'
