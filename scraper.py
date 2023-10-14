@@ -6,7 +6,7 @@ import csv
 
 DOMAIN = 'https://www.invader-spotter.art/'
 URL = DOMAIN + 'listing.php'
-IMG_BASE_URL = 'https://www.invader-spotter.art/%s'
+#IMG_BASE_URL = 'https://www.invader-spotter.art/%s'
 #EXCEL_FORMULA = '=IMAGE("%s")' % IMG_BASE_URL
 
 INVADER_ID_POINTS_PATTERN = r'<b>([A-Z]+_[0-9]+) \[([?0-9]{2,3} pts)\]<\/b>'
@@ -27,13 +27,13 @@ data={'numero':'',
 
 
 class Invader(TypedDict):
-    icon_url: str
+#    icon_url: str
     name: str
     points: str
-    status: str
+#   status: str
     status_description: str
-    location: str
-    date: str
+#   location: str
+#   date: str
     picture_url: str
 
 
@@ -50,8 +50,8 @@ while True:
         data['page'] += 1
 
     for row in invaders_rows:
-        icon_url = row.find('td', {'align': 'left'}).find('img')['src']
-        status_image_url = row.find('td', {'align': 'left'}).find('font').find('img')['src']
+   #     icon_url = row.find('td', {'align': 'left'}).find('img')['src']
+   #     status_image_url = row.find('td', {'align': 'left'}).find('font').find('img')['src']
 
         picture_url_html_tag = row.find('a', {'class': 'chocolat-image'})
         picture_url = picture_url_html_tag['href'] if picture_url_html_tag else None
