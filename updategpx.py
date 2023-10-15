@@ -18,6 +18,10 @@ for row in invadercsv:
 #read invader.gpx map and update it
 gpx = GPX.from_file("invader.gpx") 
 wpt=gpx.waypoints
+mapdict={
+    gpx.waypoints[i].name.split(' ')[0]:gpx.waypoints[i].sym
+    for i in range(0,len(wpt))
+    }
 
 for key in invaderstatus:
     try:
@@ -43,3 +47,5 @@ for key in invaderstatus:
         
     except KeyError:
         pass
+            
+gpx.to_file("invader-updated.gpx")
