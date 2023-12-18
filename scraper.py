@@ -11,6 +11,7 @@ from typing import TypedDict, List
 import fastkml
 import requests
 from bs4 import BeautifulSoup, ResultSet
+from prettytable import PrettyTable, MARKDOWN
 from pygeoif.geometry import Point
 
 DOMAIN = 'https://www.invader-spotter.art/'
@@ -22,6 +23,8 @@ INVADER_STATUS_DESCRIPTION_PATTERN = r'Dernier état connu : <img.*> (.*)<br.?>'
 # Order is important there, the first source for a given Invader is the ground
 # truth.
 SOURCE_GEOJSON = [
+    # https://umap.openstreetmap.fr/fr/map/dump-positions-des-invaders-18122024_1000818
+    'https://umap.openstreetmap.fr/fr/datalayer/1000818/3083389/',
     # https://umap.openstreetmap.fr/fr/map/space-invaders_425001
     'https://umap.openstreetmap.fr/fr/datalayer/425001/1180599/',
     # https://umap.openstreetmap.fr/fr/map/invader-world_952127
@@ -114,11 +117,10 @@ def add_locations(
 
     invaders_locations = {}
     for geojson in source_geojson:
-        print(geojson)
         result = requests.get(geojson).json()
         for feature in result['features']:
             name = re.search(
-                r'[A-Z]{2,3}_[0-9]+',
+                r'[A-Z]+_[0-9]+',
                 feature['properties'].get('name', '')
             )
             if not name:
@@ -232,11 +234,13 @@ def generate_kml(
         fh.write(kml.to_string(prettyprint=True))
 
     # Debug
-    del missing_coordinates_by_status['OK']
-    del missing_coordinates_by_status['Détruit !']
-    print('Missing locations for flashable invaders:')
+    table = PrettyTable()
+    table.field_names = ["Status", "# of missing locations"]
+    table.align["Status"] = "l"
+    table.set_style(MARKDOWN)
     for status, items in missing_coordinates_by_status.items():
-        print(status, len(items))
+        table.add_row([status, len(items)])
+    print(table.get_string(sortby="# of missing locations", reversesort=True))
 
 
 if __name__ == '__main__':
