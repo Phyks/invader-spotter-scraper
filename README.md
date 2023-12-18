@@ -14,6 +14,8 @@ python -m venv .venv
 
 ## Usage
 
+### Scraping known Invaders and locations
+
 First, scrape all known invaders together with their status and location:
 
 ```
@@ -27,6 +29,19 @@ This will generate 3 files:
     information.
 * `data/all-invaders.kml`, a ready to import KML file with all the invaders as
     bookmarks/placemarks.
+
+### Generating a KML of all remaining invaders
+
+Provided you have a KML file of your flashed invaders (or a GPX and convert it
+to KML), you can run
+
+```
+./.venv/bin/python generate_to_flash.py KML_FILE_OF_FLASHED_INVADERS
+```
+
+to generate a `data/invaders-to-flash.kml` KML file containing all the known
+invaders locations that you did not flash and that are known to be active at
+the moment.
 
 
 ## License

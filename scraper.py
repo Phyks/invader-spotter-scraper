@@ -5,14 +5,15 @@ sources.
 """
 import collections
 import csv
+import os
 import re
 from typing import TypedDict, List
 
-import fastkml
 import requests
 from bs4 import BeautifulSoup, ResultSet
 from prettytable import PrettyTable, MARKDOWN
-from pygeoif.geometry import Point
+
+from kml import generate_kml
 
 DOMAIN = 'https://www.invader-spotter.art/'
 URL = DOMAIN + 'listing.php'
@@ -37,6 +38,20 @@ class Invader(TypedDict):
     points: str
     status_description: str
     picture_url: str
+
+
+def _confirm(dialog):
+    """
+    Ask user to enter Y or N (case-insensitive).
+    :return: True if the answer is Y.
+    :rtype: bool
+
+    Source:https://gist.github.com/gurunars/4470c97c916e7b3c4731469c69671d06
+    """
+    answer = ""
+    while answer not in ["y", "n"]:
+        answer = input("%s [Y/N]? " % dialog).lower()
+    return answer == "y"
 
 
 def scrape(url=URL, out_file='data/invaders-dump.csv'):
@@ -155,85 +170,37 @@ def add_locations(
         writer.writerows(invaders)
 
 
-def _compute_color(invader):
-    """
-    Compute KML color based on invader points and status.
-    """
-    if invader['status_description'] == 'OK':
-        if int(invader['points']) == 100:
-            return 'pink'
-        elif int(invader['points']) == 50:
-            return 'purple'
-    elif invader['status_description'].startswith('Détruit'):
-        return 'red'
-    elif invader['status_description'] == 'Dégradé':
-        return 'brown'
-    return 'yellow'
+if __name__ == '__main__':
+    # Scrape data from invader-spotter.art
+    force_rescrape = 'yes'
+    if os.path.isfile('data/invaders-dump.csv'):
+        force_rescrape = _confirm('Force rescrape')
 
+    if force_rescrape:
+        scrape()
 
-def generate_kml(
-    in_file='data/invaders-with-locations.csv',
-    out_file='data/all-invaders.kml'
-):
-    """
-    Generate a GPX file from all known invaders with their locations.
-    """
-    kml = fastkml.kml.KML()
+    # Fuse with locations information
+    add_locations()
 
-    ns = '{http://www.opengis.net/kml/2.2}'
-    d = fastkml.kml.Document(
-        ns,
-        name='All invaders',
-        styles=[
-            fastkml.styles.Style(
-                ns,
-                'placemark-%s' % color,
-                styles=[
-                    fastkml.styles.IconStyle(
-                        ns,
-                        icon_href=(
-                            'https://omaps.app/placemarks/placemark-%s.png' %
-                            color
-                        )
-                    )
-                ]
-            )
-            for color in ['pink', 'purple', 'red', 'brown', 'yellow']
-        ]
-    )
-    kml.append(d)
-
-    missing_coordinates_by_status = collections.defaultdict(list)
-
-    with open(in_file, 'r') as fh:
+    # Generate a KML of all the available invaders
+    with open('data/invaders-with-locations.csv', 'r') as fh:
         reader = csv.DictReader(fh)
         invaders = list(reader)
+    generate_kml(
+        invaders=invaders,
+        out_file='data/all-invaders.kml',
+        name='All invaders',
+    )
 
+    # Debug stats
+    missing_coordinates_by_status = collections.defaultdict(list)
     for invader in invaders:
-        if not invader['lat'] and not invader['lon']:
-            # No GPS coordinates
-            status = invader['status_description']
-            missing_coordinates_by_status[status].append(
-                invader['name']
-            )
+        if invader['lat'] or invader['lon']:
             continue
-        name = invader['name']
-        description = (
-            'status=%s ; points=%s ; image="%s" ; desc="%s"' %
-            (invader['status_description'], invader['points'],
-             invader['picture_url'], invader['description'])
+        status = invader['status_description']
+        missing_coordinates_by_status[status].append(
+            invader['name']
         )
-        p = fastkml.kml.Placemark(
-            ns, name=name, description=description,
-            styleUrl=('#placemark-%s' % _compute_color(invader))
-        )
-        p.geometry = Point(invader['lon'], invader['lat'])
-        d.append(p)
-
-    with open(out_file, 'w') as fh:
-        fh.write(kml.to_string(prettyprint=True))
-
-    # Debug
     table = PrettyTable()
     table.field_names = ["Status", "# of missing locations"]
     table.align["Status"] = "l"
@@ -241,9 +208,3 @@ def generate_kml(
     for status, items in missing_coordinates_by_status.items():
         table.add_row([status, len(items)])
     print(table.get_string(sortby="# of missing locations", reversesort=True))
-
-
-if __name__ == '__main__':
-    # scrape()
-    add_locations()
-    generate_kml()
