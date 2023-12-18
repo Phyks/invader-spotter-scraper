@@ -1,4 +1,5 @@
 beautifulsoup4
 fastkml
+lxml
 prettytable
 requests
