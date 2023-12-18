@@ -8,9 +8,10 @@ import csv
 import re
 from typing import TypedDict, List
 
+import fastkml
 import requests
-import simplekml
 from bs4 import BeautifulSoup, ResultSet
+from pygeoif.geometry import Point
 
 DOMAIN = 'https://www.invader-spotter.art/'
 URL = DOMAIN + 'listing.php'
@@ -21,10 +22,10 @@ INVADER_STATUS_DESCRIPTION_PATTERN = r'Dernier état connu : <img.*> (.*)<br.?>'
 # Order is important there, the first source for a given Invader is the ground
 # truth.
 SOURCE_GEOJSON = [
-    # https://umap.openstreetmap.fr/fr/map/invader-world_952127
-    'https://umap.openstreetmap.fr/fr/datalayer/952127/2923770/',
     # https://umap.openstreetmap.fr/fr/map/space-invaders_425001
-    'https://umap.openstreetmap.fr/fr/datalayer/425001/1180599/'
+    'https://umap.openstreetmap.fr/fr/datalayer/425001/1180599/',
+    # https://umap.openstreetmap.fr/fr/map/invader-world_952127
+    'https://umap.openstreetmap.fr/fr/datalayer/952127/2923771/',
 ]
 
 
@@ -113,12 +114,16 @@ def add_locations(
 
     invaders_locations = {}
     for geojson in source_geojson:
+        print(geojson)
         result = requests.get(geojson).json()
         for feature in result['features']:
             name = re.search(
                 r'[A-Z]{2,3}_[0-9]+',
-                feature['properties']['name']
-            ).group(0)
+                feature['properties'].get('name', '')
+            )
+            if not name:
+                continue
+            name = name.group(0)
             if name in invaders_locations:
                 # Already handled
                 continue
@@ -135,8 +140,8 @@ def add_locations(
         invader['lon'], invader['lat'] = None, None
 
         for _ in range(3):
-            name = name.replace('_', '_0')
             if name not in invaders_locations:
+                name = name.replace('_', '_0')
                 continue
             location = invaders_locations[name]
             invader['description'] = location['description']
@@ -153,15 +158,15 @@ def _compute_color(invader):
     Compute KML color based on invader points and status.
     """
     if invader['status_description'] == 'OK':
-        if invader['points'] == 100:
-            return 'https://omaps.app/placemarks/placemark-pink.png'
-        elif invader['points'] == 50:
-            return 'https://omaps.app/placemarks/placemark-purple.png'
+        if int(invader['points']) == 100:
+            return 'pink'
+        elif int(invader['points']) == 50:
+            return 'purple'
     elif invader['status_description'].startswith('Détruit'):
-        return 'https://omaps.app/placemarks/placemark-red.png'
+        return 'red'
     elif invader['status_description'] == 'Dégradé':
-        return 'https://omaps.app/placemarks/placemark-brown.png'
-    return 'https://omaps.app/placemarks/placemark-yellow.png'
+        return 'brown'
+    return 'yellow'
 
 
 def generate_kml(
@@ -171,8 +176,30 @@ def generate_kml(
     """
     Generate a GPX file from all known invaders with their locations.
     """
-    kml = simplekml.Kml()
-    kml.document.name = 'All invaders'
+    kml = fastkml.kml.KML()
+
+    ns = '{http://www.opengis.net/kml/2.2}'
+    d = fastkml.kml.Document(
+        ns,
+        name='All invaders',
+        styles=[
+            fastkml.styles.Style(
+                ns,
+                'placemark-%s' % color,
+                styles=[
+                    fastkml.styles.IconStyle(
+                        ns,
+                        icon_href=(
+                            'https://omaps.app/placemarks/placemark-%s.png' %
+                            color
+                        )
+                    )
+                ]
+            )
+            for color in ['pink', 'purple', 'red', 'brown', 'yellow']
+        ]
+    )
+    kml.append(d)
 
     missing_coordinates_by_status = collections.defaultdict(list)
 
@@ -188,19 +215,21 @@ def generate_kml(
                 invader['name']
             )
             continue
-        point = kml.newpoint(
-            name=invader['name'],
-            description=(
-                'status=%s ; points=%s ; image="%s" ; desc="%s"' %
-                (invader['status_description'], invader['points'],
-                 invader['picture_url'], invader['description'])
-            ),
-            coords=[(invader['lon'], invader['lat'])],
+        name = invader['name']
+        description = (
+            'status=%s ; points=%s ; image="%s" ; desc="%s"' %
+            (invader['status_description'], invader['points'],
+             invader['picture_url'], invader['description'])
         )
-        # TODO: Not working with organic maps
-        point.style.iconstyle.icon.href = _compute_color(invader)
+        p = fastkml.kml.Placemark(
+            ns, name=name, description=description,
+            styleUrl=('#placemark-%s' % _compute_color(invader))
+        )
+        p.geometry = Point(invader['lon'], invader['lat'])
+        d.append(p)
 
-    kml.save(out_file)
+    with open(out_file, 'w') as fh:
+        fh.write(kml.to_string(prettyprint=True))
 
     # Debug
     del missing_coordinates_by_status['OK']
@@ -211,6 +240,6 @@ def generate_kml(
 
 
 if __name__ == '__main__':
-    scrape()
+    # scrape()
     add_locations()
     generate_kml()
