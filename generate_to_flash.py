@@ -1,30 +1,58 @@
-#!/uhttpssr/bin/env python
+#!/usr/bin/env python
+import argparse
 import csv
 import re
 import sys
 
 import fastkml
+import gpxpy
 
 from kml import generate_kml
 
 
+class MockFeature():
+    """
+    Mock Feature object to handle GPX the same way as KML files.
+    """
+    def __init__(self, name):
+        self.name = name
+
+
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        sys.exit('Usage: %s KML_FILE' % sys.argv[0])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', action='append', help='GPX or KML file(s) of flashed invaders.', required=True)
+    parser.add_argument('-e', '--exclude', help='A GPX file of known buggy invaders.')
+    args = parser.parse_args()
 
     # Load user-provided KML file
-    k = fastkml.kml.KML()
-    with open(sys.argv[1], 'rb') as fh:
-        k.from_string(fh.read())
+    features = []
+    for inputfile in args.input:
+        if inputfile.endswith('.kml'):
+            k = fastkml.kml.KML()
+            with open(inputfile, 'rb') as fh:
+                k.from_string(fh.read())
 
-    # Iterate over Document, Folder etc. to find features
-    # TODO: Only support nested structure with a single Folder
-    features = list(k.features())
-    while True:
-        try:
-            features = list(features[0].features())
-        except AttributeError:
-            break
+            kml_features += list(k.features())
+            # Iterate over Document, Folder etc. to find features
+            # TODO: Only support nested structure with a single Folder
+            while True:
+                try:
+                    kml_features = list(kml_features[0].features())
+                except AttributeError:
+                    break
+            features.extend(kml_features)
+        elif inputfile.endswith('.gpx'):
+            with open(inputfile, 'r') as fh:
+                gpx = gpxpy.parse(fh)
+            for point in gpx.waypoints:
+                features.append(MockFeature(point.name))
+        else:
+            sys.exit(f'Unsupported input file: {inputfile}.')
+
+    excluded = []
+    with open(args.exclude, 'r') as fh:
+        gpx = gpxpy.parse(fh)
+        excluded = [point.name for point in gpx.waypoints]
 
     # Load all the known invaders with locations
     with open('data/invaders-with-locations.csv', 'r') as fh:
@@ -71,10 +99,16 @@ if __name__ == '__main__':
         for invader in invaders_to_flash
         if invader['status_description'] not in ['Détruit !', 'Non visible']
     ]
+    # Filter out buggy invaders
+    nonbuggy_working_invaders_to_flash = [
+        invader
+        for invader in working_invaders_to_flash
+        if invader['name'] not in excluded
+    ]
 
     generate_kml(
-        invaders=working_invaders_to_flash,
+        invaders=nonbuggy_working_invaders_to_flash,
         out_file='data/invaders-to-flash.kml',
         name='Invaders left to flash',
     )
-    print('%s invaders left to flash!' % len(working_invaders_to_flash))
+    print('%s invaders left to flash!' % len(nonbuggy_working_invaders_to_flash))

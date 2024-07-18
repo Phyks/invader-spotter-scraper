@@ -3,3 +3,4 @@ fastkml
 lxml
 prettytable
 requests
+setuptools

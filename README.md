@@ -36,12 +36,18 @@ Provided you have a KML file of your flashed invaders (or a GPX and convert it
 to KML), you can run
 
 ```
-./.venv/bin/python generate_to_flash.py KML_FILE_OF_FLASHED_INVADERS
+./.venv/bin/python generate_to_flash.py -i GPX_OR_KML_FILE_OF_FLASHED_INVADERS
 ```
 
 to generate a `data/invaders-to-flash.kml` KML file containing all the known
 invaders locations that you did not flash and that are known to be active at
 the moment.
+
+You can combine multiple `-i` parameters if you have incremental GPX/KML files. 
+You can also use the `-e` flag to provide a GPX file of known buggy invaders
+(even if their status is otherwise on Invader Spotter).
+
+The setup is known to work with GPX exports from [OrganicMaps](https://github.com/organicmaps/organicmaps).
 
 
 ## License

@@ -25,11 +25,11 @@ INVADER_STATUS_DESCRIPTION_PATTERN = r'Dernier état connu : <img.*> (.*)<br.?>'
 # truth.
 SOURCE_GEOJSON = [
     # https://umap.openstreetmap.fr/fr/map/dump-positions-des-invaders-18122024_1000818
-    'https://umap.openstreetmap.fr/fr/datalayer/1000818/3083389/',
+    'https://umap.openstreetmap.fr/fr/datalayer/1000818/0fc03981-dca7-4786-865a-7576f0b5b1f1/',
     # https://umap.openstreetmap.fr/fr/map/space-invaders_425001
-    'https://umap.openstreetmap.fr/fr/datalayer/425001/1180599/',
+    'https://umap.openstreetmap.fr/fr/datalayer/425001/7142d773-c8b7-41c6-99ee-cd6ed460d918/',
     # https://umap.openstreetmap.fr/fr/map/invader-world_952127
-    'https://umap.openstreetmap.fr/fr/datalayer/952127/2923771/',
+    'https://umap.openstreetmap.fr/fr/datalayer/952127/002d41a1-0d58-4c30-9712-06a4094336b5/',
 ]
 
 
@@ -50,7 +50,7 @@ def _confirm(dialog):
     """
     answer = ""
     while answer not in ["y", "n"]:
-        answer = input("%s [Y/N]? " % dialog).lower()
+        answer = input("%s [y/n]? " % dialog).lower()
     return answer == "y"
 
 
@@ -172,7 +172,7 @@ def add_locations(
 
 if __name__ == '__main__':
     # Scrape data from invader-spotter.art
-    force_rescrape = 'yes'
+    force_rescrape = None
     if os.path.isfile('data/invaders-dump.csv'):
         force_rescrape = _confirm('Force rescrape')
 
@@ -202,9 +202,9 @@ if __name__ == '__main__':
             invader['name']
         )
     table = PrettyTable()
-    table.field_names = ["Status", "# of missing locations"]
+    table.field_names = ["Status", "# of missing locations", "Cities"]
     table.align["Status"] = "l"
     table.set_style(MARKDOWN)
     for status, items in missing_coordinates_by_status.items():
-        table.add_row([status, len(items)])
+        table.add_row([status, len(items), ', '.join(sorted(set(item.split('_')[0] for item in items)))])
     print(table.get_string(sortby="# of missing locations", reversesort=True))
