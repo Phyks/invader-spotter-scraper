@@ -30,6 +30,7 @@ SOURCE_GEOJSON = [
     'https://umap.openstreetmap.fr/fr/datalayer/425001/7142d773-c8b7-41c6-99ee-cd6ed460d918/',
     # https://umap.openstreetmap.fr/fr/map/invader-world_952127
     'https://umap.openstreetmap.fr/fr/datalayer/952127/002d41a1-0d58-4c30-9712-06a4094336b5/',
+    'https://umap.openstreetmap.fr/fr/datalayer/1140943/bd431bea-a10f-45b3-8837-b0c365b28015/',
 ]
 
 
