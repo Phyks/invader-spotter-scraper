@@ -32,7 +32,7 @@ if __name__ == '__main__':
             with open(inputfile, 'rb') as fh:
                 k.from_string(fh.read())
 
-            kml_features += list(k.features())
+            kml_features = list(k.features)
             # Iterate over Document, Folder etc. to find features
             # TODO: Only support nested structure with a single Folder
             while True:
@@ -50,9 +50,10 @@ if __name__ == '__main__':
             sys.exit(f'Unsupported input file: {inputfile}.')
 
     excluded = []
-    with open(args.exclude, 'r') as fh:
-        gpx = gpxpy.parse(fh)
-        excluded = [point.name for point in gpx.waypoints]
+    if args.exclude:
+        with open(args.exclude, 'r') as fh:
+            gpx = gpxpy.parse(fh)
+            excluded = [point.name for point in gpx.waypoints]
 
     # Load all the known invaders with locations
     with open('data/invaders-with-locations.csv', 'r') as fh:

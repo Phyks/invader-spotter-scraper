@@ -34,11 +34,11 @@ def generate_kml(
         name=name,
         styles=[
             fastkml.styles.Style(
-                ns,
-                'placemark-%s' % color,
+                ns=ns,
+                id='placemark-%s' % color,
                 styles=[
                     fastkml.styles.IconStyle(
-                        ns,
+                        ns=ns,
                         icon_href=(
                             'https://omaps.app/placemarks/placemark-%s.png' %
                             color
@@ -63,9 +63,9 @@ def generate_kml(
         )
         p = fastkml.kml.Placemark(
             ns, name=name, description=description,
-            styleUrl=('#placemark-%s' % _compute_color(invader))
+            styleUrl=('#placemark-%s' % _compute_color(invader)),
+            geometry=Point(float(invader['lon']), float(invader['lat']))
         )
-        p.geometry = Point(invader['lon'], invader['lat'])
         d.append(p)
 
     with open(out_file, 'w') as fh:
